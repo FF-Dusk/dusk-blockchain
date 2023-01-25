@@ -154,6 +154,10 @@ func (p Provisioners) CreateVotingCommittee(seed []byte, round uint64, step uint
 	return *votingCommittee
 }
 
+/* [FRZ]
+	Algorithm:
+
+*/
 // extractCommitteeMember walks through the committee set, while deducting
 // each node's stake from the passed score until we reach zero. The public key
 // of the node that the function ends on will be returned as a hexadecimal string.
@@ -161,7 +165,8 @@ func (p Provisioners) extractCommitteeMember(score uint64) []byte {
 	var m *Member
 	var e error
 
-	for i := 0; ; i++ {
+	for i := 0; ; i++ { //[FRZ] Are we sure all nodes follow the same ordering?
+		//[FRZ] if getting the ith provisioner yields an error, get provisioner 0 -- Why? What's the implication of this?
 		if m, e = p.MemberAt(i); e != nil {
 			// handling the eventuality of an out of bound error
 			m, e = p.MemberAt(0)
@@ -170,15 +175,15 @@ func (p Provisioners) extractCommitteeMember(score uint64) []byte {
 				log.Panic(e)
 			}
 
-			i = 0
+			i = 0 //[FRZ] Why do we re-start from 0 ?
 		}
 
 		stake, err := p.GetStake(m.PublicKeyBLS)
-		if err != nil {
+		if err != nil { //[FRZ] we should unify naming: 'e' or 'err' ?
 			// If we get an error from GetStake, it means we either got a public key of a
 			// provisioner who is no longer in the set, or we got a malformed public key.
 			// We can't repair our committee on the fly, so we have to panic.
-			log.Panic(fmt.Errorf("pk: %s err: %v", util.StringifyBytes(m.PublicKeyBLS), err))
+			log.Panic(fmt.Errorf("pk: %s err: %v", util.StringifyBytes(m.PublicKeyBLS), err)) //[FRZ] we should panic because we shouldn't select a wrong member (all nodes should select the same as the others, or fail)
 		}
 
 		if stake >= score {
